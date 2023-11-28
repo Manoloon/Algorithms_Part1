@@ -61,11 +61,14 @@ public class Point implements Comparable<Point> {
      */
     public double slopeTo(Point that) {
         /* YOUR CODE HERE */
-        if (this.x == that.x) {
-            if (this.y == that.y) return Double.NEGATIVE_INFINITY;
+        double negative = this.x - that.x;
+        double positive = this.y - that.y;
+        if (negative == 0) {
+            if (positive == 0) return Double.NEGATIVE_INFINITY;
             else return Double.POSITIVE_INFINITY;
         }
-        else return (double) (that.y - this.y) / (that.x - this.x);
+        if (positive == 0) return 0;
+        return (positive) / (negative);
     }
 
     /**
@@ -81,11 +84,9 @@ public class Point implements Comparable<Point> {
      * argument point
      */
     public int compareTo(Point that) {
-        if (this.y < that.y || this.y == that.y && this.x < that.x) {
-            return -1;
-        }
-        else if (this.y == that.y && this.x == that.x) return 0;
-        return 1;
+        if (this.y < that.y) return -1;
+        else if (this.y == that.y) return Integer.compare(this.x, that.x);
+        else return 1;
     }
 
     /**
@@ -96,13 +97,8 @@ public class Point implements Comparable<Point> {
      */
     public Comparator<Point> slopeOrder() {
         /* YOUR CODE HERE */
-        return (p1, p2) -> {
-            double slopeP1 = this.slopeTo(p1);
-            double slopeP2 = this.slopeTo(p2);
-            return Double.compare(slopeP1, slopeP2);
-        };
+        return (p1, p2) -> Double.compare(slopeTo(p1), slopeTo(p2));
     }
-
 
     /**
      * Returns a string representation of this point.
@@ -121,5 +117,20 @@ public class Point implements Comparable<Point> {
      */
     public static void main(String[] args) {
         /* YOUR CODE HERE */
+        Point p1 = new Point(1, 3);
+        Point p2 = new Point(1, 4);
+        Point p3 = new Point(2, 5);
+        Point p4 = new Point(3, 5);
+        Point p5 = new Point(4, 3);
+        System.out.println("p1 compare to p2 " + p1.compareTo(p2) + ".");
+        System.out.println("p1 compare to p3 " + p1.compareTo(p3) + ".");
+        System.out.println("p1 compare to p4 " + p1.compareTo(p4) + ".");
+        System.out.println("p1 compare to p5 " + p1.compareTo(p5) + ".");
+
+        System.out.println("p1 slope to p1 " + p1.slopeTo(p1) + ".");
+        System.out.println("p1 slope to p2 " + p1.slopeTo(p2) + ".");
+        System.out.println("p1 slope to p3 " + p1.slopeTo(p3) + ".");
+        System.out.println("p1 slope to p4 " + p1.slopeTo(p4) + ".");
+        System.out.println("p1 slope to p5 " + p1.slopeTo(p5) + ".");
     }
 }
