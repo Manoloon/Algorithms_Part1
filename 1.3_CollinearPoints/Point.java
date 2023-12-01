@@ -111,7 +111,7 @@ public class Point implements Comparable<Point> {
         /* DO NOT MODIFY */
         return "(" + x + ", " + y + ")";
     }
-
+    /*
     private int ccw(Point b, Point c) {
         // Cross product
         double area2 = (b.x - this.x) * (c.y - this.y) - (b.y - this.y) * (c.x - this.x);
@@ -119,6 +119,7 @@ public class Point implements Comparable<Point> {
         else if (area2 > 0) return 1;
         else return 0;
     }
+    */
 
     /**
      * Unit tests the Point data type.
