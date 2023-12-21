@@ -69,7 +69,7 @@ public class Board {
                 int y1 = xyFrom1D(i)[1];
                 int x2 = xyFrom1D(board[i] - offset)[0];
                 int y2 = xyFrom1D(board[i] - offset)[1];
-                result += (Math.abs(x1 - x2) + Math.abs(y1 - y2));
+                result = result + (Math.abs(x1 - x2) + Math.abs(y1 - y2));
             }
         }
         return result;
@@ -85,6 +85,7 @@ public class Board {
 
     // does this board equal y?
     public boolean equals(Object y) {
+        if (y == this) return true;
         if (y == null) return false;
         if (y.getClass() != this.getClass()) return false;
         Board other = (Board) y;
@@ -98,8 +99,8 @@ public class Board {
     // all neighboring boards
     public Iterable<Board> neighbors() {
         Queue<Board> neighbors = new Queue<Board>();
-        int index = 0;
-        int row, col = 0;
+        int index;
+        int row, col;
         ArrayList<Integer> tiles = new ArrayList<Integer>();
         for (index = 0; index < board.length; index++) {
             if (board[index] == 0) {
@@ -120,14 +121,15 @@ public class Board {
             int[] temp1D = copy1DTo1D(board);
             swap1D(temp1D, index, tiles.get(i));
             int[][] temp2D = copy1DTo2D(temp1D, this.width);
-            neighbors.enqueue(new Board(temp2D));
+            Board tempBoard = new Board(temp2D);
+            neighbors.enqueue(tempBoard);
         }
         return neighbors;
     }
 
     // a board that is obtained by exchanging any pair of tiles
     public Board twin() {
-        int col, row, dir = 0;
+        int col, row, dir;
         int[] twin1D = new int[width];
         // make copy board to 1D
         for (int i = 0; i < width; i++) {
@@ -175,7 +177,7 @@ public class Board {
     }
 
     private int xyTo1D(int row, int col) {
-        return (col % width) + (width * row);
+        return (width * row) + (col % width);
     }
 
     private int[] xyFrom1D(int i) {
@@ -186,7 +188,8 @@ public class Board {
     }
 
     private boolean checkBounds(int row, int col) {
-        return (row > 0 || row <= width || col > 0 || col <= width);
+        if (row < 0 || row >= width || col < 0 || col >= width) return false;
+        return true;
     }
 
     private int[] copy1DTo1D(int[] a) {
@@ -216,8 +219,8 @@ public class Board {
     private static int[][] createBoard(int[] data, int size) {
         int[][] result = new int[size][size];
         int index = 0;
-        for (int i = 0; i < size; i++) {
-            for (int j = 0; j < size; j++)
+        for (int i = 0; i < result.length; i++) {
+            for (int j = 0; j < result.length; j++)
                 result[i][j] = data[index++];
         }
         return result;
@@ -225,7 +228,7 @@ public class Board {
 
     // unit testing (not graded)
     public static void main(String[] args) {
-        int[] data = { 4, 7, 3, 1, 5, 6, 2, 8, 0 };//{ 6, 1, 4, 3, 7, 2, 8, 0, 5 };
+        int[] data = { 8, 1, 3, 4, 0, 2, 7, 6, 5 };
         int[] goal = { 1, 2, 3, 4, 5, 6, 7, 8, 0 };
         int[][] testb = createBoard(data, 3);
         int[][] goalb = createBoard(goal, 3);
@@ -233,12 +236,12 @@ public class Board {
         Board board = new Board(testb);
         Board goalBoard = new Board(goalb);
         System.out.println(board);
-
+        System.out.println(goalBoard);
         System.out.println("Is it goal board? " + board.isGoal());
         System.out.println("Manhattan: " + board.manhattan());
         System.out.println("Hamming: " + board.hamming());
         System.out.println();
-/*
+
         int n = 1;
         Iterable<Board> neighbors = board.neighbors();
         for (Board b : neighbors) {
@@ -250,11 +253,10 @@ public class Board {
         twin = board.twin();
         System.out.println("Twin");
         System.out.println(twin);
- */
+
         Board boardClone = new Board(testb);
         // System.out.println("Is board equal to twin? " + board.equals(twin));
         System.out.println("Is board equal to board? " + board.equals(goalBoard));
-        System.out.println("Is board equal to null? " + board.equals(null));
         System.out.println("Is board equal to boardClone? " + board.equals(boardClone));
     }
 }
