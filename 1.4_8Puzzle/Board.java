@@ -7,19 +7,19 @@
 import edu.princeton.cs.algs4.Queue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class Board {
-    private int[] board;
-    private int width;
-    private int offset = 1;
+    private final int[] board;
+    private final int width;
 
     // create a board from an n-by-n array of tiles,
     // where tiles[row][col] = tile at (row, col)
     public Board(int[][] tiles) {
         if (tiles == null) throw new java.lang.IllegalArgumentException();
-
         if (tiles.length != tiles[0].length) throw new java.lang.IllegalArgumentException();
-
+        if (tiles.length < 2 || tiles.length > 128) throw new IllegalArgumentException();
         width = tiles.length;
         board = new int[width * width];
 
@@ -33,7 +33,7 @@ public class Board {
     // string representation of this board
     public String toString() {
         StringBuilder str = new StringBuilder();
-        str.append(" " + width + "\n");
+        str.append(width + "\n");
 
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < width; j++) {
@@ -53,7 +53,7 @@ public class Board {
     public int hamming() {
         int result = 0;
         for (int i = 0; i < board.length; i++) {
-            if (board[i] != i + offset && board[i] != 0) {
+            if (board[i] != i + 1 && board[i] != 0) {
                 result++;
             }
         }
@@ -63,13 +63,14 @@ public class Board {
     // sum of Manhattan distances between tiles and goal
     public int manhattan() {
         int result = 0;
-        for (int i = 0; i < width; i++) {
-            if (board[i] != i + offset && board[i] != 0) {
+        for (int i = 0; i < board.length; i++) {
+            if (board[i] != i + 1 && board[i] != 0) {
                 int x1 = xyFrom1D(i)[0];
                 int y1 = xyFrom1D(i)[1];
-                int x2 = xyFrom1D(board[i] - offset)[0];
-                int y2 = xyFrom1D(board[i] - offset)[1];
-                result = result + (Math.abs(x1 - x2) + Math.abs(y1 - y2));
+                int value = board[i] - 1;
+                int x2 = xyFrom1D(value)[0];
+                int y2 = xyFrom1D(value)[1];
+                result += (Math.abs(x1 - x2) + Math.abs(y1 - y2));
             }
         }
         return result;
@@ -77,8 +78,8 @@ public class Board {
 
     // is this board the goal board?
     public boolean isGoal() {
-        for (int i = 0; i < width - offset; i++) {
-            if (board[i] != i + 1) return false;
+        for (int i = 0; i < width * width - 1; i++) {
+            if (board[i] > board[i + 1]) return false;
         }
         return true;
     }
@@ -90,36 +91,40 @@ public class Board {
         if (y.getClass() != this.getClass()) return false;
         Board other = (Board) y;
         if (other.dimension() != this.dimension()) return false;
-        for (int i = 0; i < this.width; i++) {
-            if (this.board[i] != other.board[i]) return false;
-        }
+        if (!Arrays.equals(this.board, other.board)) return false;
         return true;
     }
 
     // all neighboring boards
     public Iterable<Board> neighbors() {
         Queue<Board> neighbors = new Queue<Board>();
-        int index;
-        int row, col;
+        int emptyIndex;
+        int emptyRow;
+        int emptyCol;
         ArrayList<Integer> tiles = new ArrayList<Integer>();
-        for (index = 0; index < board.length; index++) {
-            if (board[index] == 0) {
-                col = xyFrom1D(index)[0];
-                row = xyFrom1D(index)[1];
+        //
+        for (emptyIndex = 0; emptyIndex < board.length; emptyIndex++) {
+            if (board[emptyIndex] == 0) {
+                emptyCol = xyFrom1D(emptyIndex)[0];
+                emptyRow = xyFrom1D(emptyIndex)[1];
+
+                // Calculate neighboring tiles
                 // up
-                if (checkBounds(row - 1, col)) tiles.add(xyTo1D(row - 1, col));
+                if (checkBounds(emptyRow - 1, emptyCol)) tiles.add(xyTo1D(emptyRow - 1, emptyCol));
                 // right
-                if (checkBounds(row, col + 1)) tiles.add(xyTo1D(row, col + 1));
+                if (checkBounds(emptyRow, emptyCol + 1)) tiles.add(xyTo1D(emptyRow, emptyCol + 1));
                 // down
-                if (checkBounds(row + 1, col)) tiles.add(xyTo1D(row + 1, col));
+                if (checkBounds(emptyRow + 1, emptyCol)) tiles.add(xyTo1D(emptyRow + 1, emptyCol));
                 // left
-                if (checkBounds(row, col - 1)) tiles.add(xyTo1D(row, col - 1));
+                if (checkBounds(emptyRow, emptyCol - 1)) tiles.add(xyTo1D(emptyRow, emptyCol - 1));
                 break;
             }
         }
+        // generate neighboring boards
         for (int i = 0; i < tiles.size(); i++) {
+            int targetIndex = tiles.get(i);
             int[] temp1D = copy1DTo1D(board);
-            swap1D(temp1D, index, tiles.get(i));
+            swap1D(temp1D, emptyIndex, targetIndex);
             int[][] temp2D = copy1DTo2D(temp1D, this.width);
             Board tempBoard = new Board(temp2D);
             neighbors.enqueue(tempBoard);
@@ -129,55 +134,41 @@ public class Board {
 
     // a board that is obtained by exchanging any pair of tiles
     public Board twin() {
-        int col, row, dir;
-        int[] twin1D = new int[width];
-        // make copy board to 1D
-        for (int i = 0; i < width; i++) {
-            twin1D[i] = board[i];
-        }
+        int[] twin1D = Arrays.copyOf(board, board.length);
+        List<Integer> nonEmptyIndexes = new ArrayList<>();
         for (int i = 0; i < twin1D.length; i++) {
-            if (twin1D[i] != 0) {
-                col = xyFrom1D(i)[0];
-                row = xyFrom1D(i)[1];
-                // up
-                if (checkBounds(row - 1, col)) {
-                    dir = xyTo1D(row - 1, col);
-                    if (twin1D[dir] != 0) {
-                        swap1D(twin1D, i, dir);
-                        break;
-                    }
-                }
-                // right
-                if (checkBounds(row, col + 1)) {
-                    dir = xyTo1D(row, col + 1);
-                    if (twin1D[dir] != 0) {
-                        swap1D(twin1D, i, dir);
-                        break;
-                    }
-                }
-                // down
-                if (checkBounds(row + 1, col)) {
-                    dir = xyTo1D(row + 1, col);
-                    if (twin1D[dir] != 0) {
-                        swap1D(twin1D, i, dir);
-                        break;
-                    }
-                }
-                // left
-                if (checkBounds(row, col - 1)) {
-                    dir = xyTo1D(row, col - 1);
-                    if (twin1D[dir] != 0) {
-                        swap1D(twin1D, i, dir);
-                        break;
-                    }
-                }
+            if (twin1D[i] != 0) nonEmptyIndexes.add(i);
+        }
+        if (nonEmptyIndexes.size() < 2) {
+            return new Board(copy1DTo2D(twin1D, width));
+        }
+
+        for (int i = 0; i < nonEmptyIndexes.size(); i++) {
+            int current = nonEmptyIndexes.get(i);
+            int next = nonEmptyIndexes.get(i + 1);
+
+            if (areAdjacent(current, next)) {
+                swap1D(twin1D, current, next);
+                return new Board(copy1DTo2D(twin1D, this.width));
             }
         }
         return new Board(copy1DTo2D(twin1D, this.width));
     }
 
+    private boolean areAdjacent(int tile1, int tile2) {
+        int[] coords1 = xyFrom1D(tile1);
+        int[] coords2 = xyFrom1D(tile2);
+
+        int col1 = coords1[0];
+        int row1 = coords1[1];
+
+        int col2 = coords2[0];
+        int row2 = coords2[1];
+        return (Math.abs(col1 - col2) + Math.abs(row1 - row2)) == 1;
+    }
+
     private int xyTo1D(int row, int col) {
-        return (width * row) + (col % width);
+        return (width * row) + col;
     }
 
     private int[] xyFrom1D(int i) {
@@ -188,29 +179,31 @@ public class Board {
     }
 
     private boolean checkBounds(int row, int col) {
-        if (row < 0 || row >= width || col < 0 || col >= width) return false;
-        return true;
+        return row >= 0 && row < width && col >= 0 && col < width;
     }
 
     private int[] copy1DTo1D(int[] a) {
-        int[] b = new int[a.length];
-        for (int i = 0; i < b.length; i++) {
-            b[i] = a[i];
+        int[] temp1D = new int[a.length];
+        for (int i = 0; i < temp1D.length; i++) {
+            temp1D[i] = a[i];
         }
-        return b;
+        return temp1D;
     }
 
     private int[][] copy1DTo2D(int[] a, int size) {
-        int[][] b = new int[size][size];
+        int[][] temp2d = new int[width][width];
         for (int i = 0; i < size; i++) {
-            int x = xyFrom1D(i)[0];
-            int y = xyFrom1D(i)[1];
-            b[x][y] = a[i];
+            int row = xyFrom1D(i)[0];
+            int col = xyFrom1D(i)[1];
+            temp2d[col][row] = a[i];
         }
-        return b;
+        return temp2d;
     }
 
     private void swap1D(int[] array, int a, int b) {
+        // if (array == null || a < 0 || b < 0 || a >= array.length || b >= array.length || a == b) {
+        //    return;
+        //}
         int temp = array[a];
         array[a] = array[b];
         array[b] = temp;
@@ -219,17 +212,30 @@ public class Board {
     private static int[][] createBoard(int[] data, int size) {
         int[][] result = new int[size][size];
         int index = 0;
-        for (int i = 0; i < result.length; i++) {
-            for (int j = 0; j < result.length; j++)
+
+        if (data.length != size * size) {
+            throw new IllegalArgumentException(
+                    "Insufficient data elements for the specified board size.");
+        }
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                if (index >= data.length) {
+                    throw new IllegalArgumentException("Data elements exceeded the expected size.");
+                }
                 result[i][j] = data[index++];
+            }
         }
         return result;
     }
 
     // unit testing (not graded)
     public static void main(String[] args) {
-        int[] data = { 8, 1, 3, 4, 0, 2, 7, 6, 5 };
-        int[] goal = { 1, 2, 3, 4, 5, 6, 7, 8, 0 };
+        int[] data = {
+                8, 4, 7, 1, 5, 6, 3, 2, 0
+        };
+        int[] goal = {
+                1, 2, 3, 4, 5, 6, 7, 8, 0
+        };
         int[][] testb = createBoard(data, 3);
         int[][] goalb = createBoard(goal, 3);
 
@@ -237,7 +243,7 @@ public class Board {
         Board goalBoard = new Board(goalb);
         System.out.println(board);
         System.out.println(goalBoard);
-        System.out.println("Is it goal board? " + board.isGoal());
+        System.out.println("Is it goal board? " + goalBoard.isGoal());
         System.out.println("Manhattan: " + board.manhattan());
         System.out.println("Hamming: " + board.hamming());
         System.out.println();
