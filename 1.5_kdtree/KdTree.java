@@ -97,7 +97,7 @@ public class KdTree {
         if (n == null) return;
 
         if (queryRect.contains(n.point)) pointsInrect.push(n.point);
-        
+
         if (n.vertical) {
             if (queryRect.xmin() < n.point.x())
                 range(n.left, queryRect, pointsInrect);
@@ -106,58 +106,62 @@ public class KdTree {
         }
         else {
             if (queryRect.ymin() < n.point.y())
-                range(n.right, queryRect, pointsInrect);
-            if (queryRect.xmax() >= n.point.y())
                 range(n.left, queryRect, pointsInrect);
+            if (queryRect.ymax() >= n.point.y())
+                range(n.right, queryRect, pointsInrect);
         }
     }
 
     public Point2D nearest(Point2D p) {
         if (p == null) throw new IllegalArgumentException("nearest failed , p is null");
         if (isEmpty()) return null;
-        Node nearestN = nearest(root, root.point, p);
-        return nearestN.point;
+        return nearest(root, root.point, p).point;
+    }
+
+    private Node nearest(Node currentNode, Point2D currentNearest, Point2D queryPoint) {
+        if (currentNode == null) return new Node(currentNearest);
+
+        double closestDist = queryPoint.distanceSquaredTo(currentNearest);
+        double nodeDist = currentNode.point.distanceSquaredTo(queryPoint);
+
+        if (nodeDist < closestDist) {
+            currentNearest = currentNode.point;
+            closestDist = nodeDist;
+        }
+
+        Node firstNode = currentNode.left;
+        Node secondNode = currentNode.right;
+
+        if ((currentNode.vertical && queryPoint.x() < currentNode.point.x()) || (
+                !currentNode.vertical && queryPoint.y() < currentNode.point.y())) {
+            firstNode = currentNode.right;
+            secondNode = currentNode.left;
+        }
+
+        Node candidateNode = nearest(firstNode, currentNearest, queryPoint);
+        double candidateDist = queryPoint.distanceSquaredTo(candidateNode.point);
+
+        if (candidateDist < closestDist) {
+            currentNearest = candidateNode.point;
+            closestDist = candidateDist;
+        }
+
+        if (secondNode != null && secondNode.point.distanceSquaredTo(queryPoint) < closestDist) {
+            Node localCandidateNode = nearest(secondNode, currentNearest, queryPoint);
+            double localCandidateDist = queryPoint.distanceSquaredTo(localCandidateNode.point);
+            
+            if (localCandidateDist < closestDist) {
+                currentNearest = localCandidateNode.point;
+            }
+        }
+
+        return new Node(currentNearest);
     }
 
     public static void main(String[] args) {
 
     }
 
-    private Node nearest(Node currentNode, Point2D currentNearest, Point2D queryPoint) {
-        if (currentNode == null) return null;
-        Node closestNode = new Node(currentNearest);
-        double closestDist = queryPoint.distanceSquaredTo(closestNode.point);
-        if (currentNode.point.distanceSquaredTo(queryPoint) < closestDist) {
-            closestNode = currentNode;
-            closestDist = queryPoint.distanceSquaredTo(closestNode.point);
-        }
-        Node firstNode;
-        Node secondNode;
-        if ((currentNode.vertical && queryPoint.x() < currentNode.point.x()) || (
-                !currentNode.vertical && queryPoint.y() < currentNode.point.y())) {
-            firstNode = currentNode.left;
-            secondNode = currentNode.right;
-        }
-        else {
-            firstNode = currentNode.right;
-            secondNode = currentNode.left;
-        }
-        Node candidateNode = nearest(firstNode, closestNode.point, queryPoint);
-        if (candidateNode.point.distanceSquaredTo(queryPoint) < closestDist) {
-            closestNode = candidateNode;
-            closestDist = queryPoint.distanceSquaredTo(closestNode.point);
-        }
-
-        if (secondNode != null
-                && secondNode.point.distanceSquaredTo(queryPoint) < closestDist) {
-            Node localcandidateNode = nearest(secondNode, closestNode.point, queryPoint);
-            if (localcandidateNode.point.distanceSquaredTo(queryPoint) < closestDist) {
-                closestNode = localcandidateNode;
-            }
-        }
-
-        return closestNode;
-    }
 
     private Node insert(Node n, Point2D p, boolean isVertical) {
         if (n == null) {
