@@ -47,19 +47,25 @@ public class KdTree {
 
     public boolean contains(Point2D p) {
         if (p == null) throw new IllegalArgumentException("contains failed,p is null");
-        while (root != null) {
-            if (root.vertical) {
-                if (p.x() > root.point.x() || p.y() != root.point.y()) root = root.right;
-                else if (p.x() < root.point.x()) root = root.left;
-                else return true;
-            }
-            else {
-                if (p.y() > root.point.y() || p.x() != root.point.x()) root = root.right;
-                else if (p.y() < root.point.y()) root = root.left;
-                else return true;
-            }
+        return contains(root, p);
+    }
+
+    private boolean contains(Node n, Point2D p) {
+        if (n == null) return false;
+        if (n.point.equals(p)) return true;
+        int compare;
+        if (n.vertical) {
+            compare = Double.compare(p.x(), n.point.x());
         }
-        return false;
+        else {
+            compare = Double.compare(p.y(), n.point.y());
+        }
+        if (compare < 0) {
+            return contains(n.left, p);
+        }
+        else {
+            return contains(n.right, p);
+        }
     }
 
     public void draw() {
@@ -82,10 +88,28 @@ public class KdTree {
 
     public Iterable<Point2D> range(RectHV rect) {
         if (rect == null) throw new IllegalArgumentException("range is null");
-        Stack<Point2D> pointsInRect = new Stack<Point2D>();
-        RectHV rootRect = new RectHV(0.0, 0.0, 1.0, 1.0);
-        range(root, rootRect, rect, pointsInRect);
+        Stack<Point2D> pointsInRect = new Stack<>();
+        range(root, rect, pointsInRect);
         return pointsInRect;
+    }
+
+    private void range(Node n, RectHV queryRect, Stack<Point2D> pointsInrect) {
+        if (n == null) return;
+
+        if (queryRect.contains(n.point)) pointsInrect.push(n.point);
+        
+        if (n.vertical) {
+            if (queryRect.xmin() < n.point.x())
+                range(n.left, queryRect, pointsInrect);
+            if (queryRect.xmax() >= n.point.x())
+                range(n.right, queryRect, pointsInrect);
+        }
+        else {
+            if (queryRect.ymin() < n.point.y())
+                range(n.right, queryRect, pointsInrect);
+            if (queryRect.xmax() >= n.point.y())
+                range(n.left, queryRect, pointsInrect);
+        }
     }
 
     public Point2D nearest(Point2D p) {
@@ -99,8 +123,7 @@ public class KdTree {
 
     }
 
-    private Node nearest(Node currentNode, Point2D currentNearest,
-                         Point2D queryPoint) {
+    private Node nearest(Node currentNode, Point2D currentNearest, Point2D queryPoint) {
         if (currentNode == null) return null;
         Node closestNode = new Node(currentNearest);
         double closestDist = queryPoint.distanceSquaredTo(closestNode.point);
@@ -110,8 +133,8 @@ public class KdTree {
         }
         Node firstNode;
         Node secondNode;
-        if ((currentNode.vertical && queryPoint.x() < currentNode.point.x()) ||
-                (!currentNode.vertical && queryPoint.y() < currentNode.point.y())) {
+        if ((currentNode.vertical && queryPoint.x() < currentNode.point.x()) || (
+                !currentNode.vertical && queryPoint.y() < currentNode.point.y())) {
             firstNode = currentNode.left;
             secondNode = currentNode.right;
         }
@@ -125,7 +148,8 @@ public class KdTree {
             closestDist = queryPoint.distanceSquaredTo(closestNode.point);
         }
 
-        if (secondNode != null && secondNode.point.distanceSquaredTo(queryPoint) < closestDist) {
+        if (secondNode != null
+                && secondNode.point.distanceSquaredTo(queryPoint) < closestDist) {
             Node localcandidateNode = nearest(secondNode, closestNode.point, queryPoint);
             if (localcandidateNode.point.distanceSquaredTo(queryPoint) < closestDist) {
                 closestNode = localcandidateNode;
@@ -133,26 +157,6 @@ public class KdTree {
         }
 
         return closestNode;
-    }
-
-    private void range(Node n, RectHV nRect, RectHV queryRect, Stack<Point2D> pointsInrect) {
-        if (n == null) throw new IllegalArgumentException("in Range, root null");
-        if (!nRect.intersects(queryRect)) return;
-        if (queryRect.contains(n.point)) pointsInrect.push(n.point);
-
-        RectHV leftRect;
-        RectHV rightRect;
-        if (n.vertical) {
-            leftRect = new RectHV(nRect.xmin(), nRect.ymin(), n.point.x(), nRect.ymax());
-            rightRect = new RectHV(n.point.x(), nRect.ymin(), nRect.xmax(), nRect.ymax());
-        }
-        else {
-            leftRect = new RectHV(nRect.xmin(), nRect.ymin(), nRect.xmax(), n.point.y());
-            rightRect = new RectHV(nRect.xmin(), n.point.y(), nRect.xmax(), nRect.ymax());
-        }
-
-        range(n.left, leftRect, queryRect, pointsInrect);
-        range(n.right, rightRect, queryRect, pointsInrect);
     }
 
     private Node insert(Node n, Point2D p, boolean isVertical) {
